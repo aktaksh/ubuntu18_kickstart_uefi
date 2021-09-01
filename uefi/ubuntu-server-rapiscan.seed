@@ -1,0 +1,68 @@
+# From here onwards Rapiscan OS specifig settings
+# Partitioning
+d-i preseed/early_command string umount /media
+d-i partman/early_command \
+    string debconf-set partman-auto/disk "$(echo `ls -l -- /dev/sd[a-z] /dev/nvme[0-9]* 2>/dev/null | grep -v "usb" | head -n1 | grep -oh '/dev/.*'`)"
+d-i partman-auto/method string lvm
+d-i partman-md/device_remove_md boolean true
+d-i partman-lvm/device_remove_lvm boolean true
+d-i partman-lvm/confirm boolean true
+d-i partman-lvm/confirm_nooverwrite boolean true
+d-i partman-auto-lvm/guided_size string max
+d-i partman-auto/expert_recipe string          \
+        efi-boot-lvm-root ::                   \
+              512 512 512 fat32                \
+                      $primary{ }              \
+                      method{ efi }            \
+                      format{ }                \
+              .                                \
+              100 1000 -1 $default_filesystem  \
+                      $defaultignore{ }        \
+                      $primary{ }              \
+                      method{ lvm }            \
+                      device{ }                \
+                      vg_name{ rootvg }        \
+              .                                \
+              1024 3072 -1 $default_filesystem \
+                      $lvmok{}                 \
+                      lv_name{ root }          \
+                      in_vg{ rootvg }          \
+                      method{ format }         \
+                      format{ }                \
+                      use_filesystem{ }        \
+                      filesystem{ xfs }        \
+                      mountpoint{ / }          \
+              .                                \
+              1024 1024 1024 linux-swap        \
+                      $lvmok{ }                \
+                      in_vg{ rootvg }          \
+                      lv_name{ swap }          \
+                      method{ swap }           \
+                      format{ } .
+
+d-i partman-partitioning/confirm_write_new_label boolean true
+d-i partman/choose_partition select finish
+d-i partman/confirm boolean true
+d-i partman/confirm_nooverwrite boolean true
+
+# From here onwards Ubuntu default settings
+# Suggest LVM by default.
+d-i	partman-auto/init_automatically_partition	string some_device_lvm
+d-i	partman-auto/init_automatically_partition	seen false
+# Install the Ubuntu Server seed.
+tasksel	tasksel/force-tasks	string server
+# Only install basic language packs. Let tasksel ask about tasks.
+d-i	pkgsel/language-pack-patterns	string
+# No language support packages.
+d-i	pkgsel/install-language-support	boolean false
+# Only ask the UTC question if there are other operating systems installed.
+d-i	clock-setup/utc-auto	boolean true
+# Verbose output and no boot splash screen.
+d-i	debian-installer/quiet	boolean false
+d-i	debian-installer/splash	boolean false
+# Install the debconf oem-config frontend (if in OEM mode).
+d-i	oem-config-udeb/frontend	string debconf
+# Wait for two seconds in grub
+d-i	grub-installer/timeout	string 2
+# Add the network and tasks oem-config steps by default.
+oem-config	oem-config/steps	multiselect language, timezone, keyboard, user, network, tasks
